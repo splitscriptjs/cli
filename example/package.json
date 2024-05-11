@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@splitscript.js/discord": "^3.2.2"
+  }
+}
