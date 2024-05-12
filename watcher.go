@@ -7,16 +7,19 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"splitscript/debounce"
 	"strings"
 	"time"
+
+	"splitscript/config"
+	"splitscript/debounce"
 
 	"github.com/evanw/esbuild/pkg/api"
 	"github.com/farmergreg/rfsnotify"
 	"gopkg.in/fsnotify.v1"
 )
 
-func watchDir(conf Config, dir string) error {
+func watchDir(conf config.Config, dir string) error {
+	t := GetProjectType()
 	err := buildAll(conf)
 	if err != nil {
 		return err
@@ -30,21 +33,36 @@ func watchDir(conf Config, dir string) error {
 		for {
 			select {
 			case event, ok := <-watcher.Events:
-				if !ok {
+				if !ok || (filepath.Ext(event.Name) != ".ts" && filepath.Ext(event.Name) != ".js") {
 					return
 				}
-				if event.Op == fsnotify.Create || event.Op == fsnotify.Write {
+				isTs := filepath.Ext(event.Name) == ".ts"
+				if event.Op == fsnotify.Create {
+					var bp []byte
+					if isTs {
+						bp = []byte(Boilerplate(ts, "@splitscript.js/discord", "MessageCreate"))
+					} else {
+						bp = []byte(Boilerplate(t, "@splitscript.js/discord", "MessageCreate"))
+					}
+					err := os.WriteFile(event.Name, bp, 0666)
+					if err != nil {
+						fmt.Println(errMessage.Render("Failed to boilerplate " + event.Name))
+						fmt.Println(err.Error())
+						return
+					}
+					debounce(func() { build(conf, event.Name) })
+				} else if event.Op == fsnotify.Write {
 					debounce(func() { build(conf, event.Name) })
 				} else if event.Op == fsnotify.Remove || event.Op == fsnotify.Rename {
 					fileToRemove, err := generateDevFileName(conf, event.Name)
 					if err != nil {
 						fmt.Println(err.Error())
-						break
+						return
 					}
 					err = os.Remove(fileToRemove)
 					if err != nil {
 						fmt.Println(err.Error())
-						break
+						return
 					}
 					fmt.Println(info.Render("Updated"))
 				}
@@ -76,7 +94,7 @@ func watchDir(conf Config, dir string) error {
 
 var ignore = []string{"node_modules", ".git"}
 
-func build(conf Config, path string) {
+func build(conf config.Config, path string) {
 	outFile, err := generateDevFileName(conf, path)
 	if err != nil {
 		fmt.Println(errMessage.Render("Failed to build " + path))
@@ -91,7 +109,7 @@ func build(conf Config, path string) {
 		LogLevel:    api.LogLevelInfo,
 	})
 }
-func buildAll(conf Config) error {
+func buildAll(conf config.Config) error {
 	fmt.Println(info.Render("Rebuilding"))
 
 	clearDevDir(conf)
@@ -113,10 +131,14 @@ func buildAll(conf Config) error {
 	return nil
 }
 
-func generateDevFileName(conf Config, path string) (string, error) {
+func generateDevFileName(conf config.Config, path string) (string, error) {
 	rel, err := filepath.Rel("./", path)
 	if err != nil {
 		return "", err
+	}
+	ext := filepath.Ext(rel)
+	if ext == ".ts" {
+		rel = strings.TrimSuffix(rel, ext) + ".js"
 	}
 	return filepath.Join(conf.Dev, rel), nil
 }
@@ -154,7 +176,7 @@ func visit(path string, di fs.DirEntry, err error) error {
 	return nil
 }
 
-func clearDevDir(conf Config) {
+func clearDevDir(conf config.Config) {
 	err := os.RemoveAll(conf.Dev)
 	if err != nil {
 		fmt.Println(err.Error())

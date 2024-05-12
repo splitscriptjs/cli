@@ -1,16 +1,17 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
+	"splitscript/config"
 )
 
 func main() {
 	addCmd("dev", make(args), func(args []string) {
 		fmt.Println(block.Render("Splitscript"))
-		conf, err := readConfig()
-		if errors.Is(err, os.ErrNotExist) {
+
+		conf, err := config.Read()
+		if os.IsNotExist(err) {
 			fmt.Println(errMessage.Render(err.Error()))
 			fmt.Println(warning.Render("Try running `splitscript init`"))
 			os.Exit(1)

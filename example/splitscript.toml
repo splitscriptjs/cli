@@ -1,5 +1,5 @@
 typescript = true
-main = "sub/b/main.ts"
+main = "app.ts"
 out = "dist"
 dev = "dev"
 ignore = [".git", "node_modules"]

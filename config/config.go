@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"github.com/BurntSushi/toml"
@@ -12,7 +12,7 @@ type Config struct {
 	Ignore     []string `toml:"ignore"`
 }
 
-func readConfig() (Config, error) {
+func Read() (Config, error) {
 	var conf Config
 	_, err := toml.DecodeFile("splitscript.toml", &conf)
 	if err != nil {

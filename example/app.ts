@@ -1,4 +1,3 @@
-var accum = 0
-setInterval(function () {
-    accum++
-}, 1000)
+import discord from '@splitscript.js/discord'
+
+discord.listen('123')
