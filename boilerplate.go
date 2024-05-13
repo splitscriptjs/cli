@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"splitscript/utils"
 )
 
 func tsBoilerplate(packageName, eventName string) string {
@@ -41,13 +42,13 @@ type Package struct {
 func GetProjectType() int {
 	bytes, err := os.ReadFile("package.json")
 	if os.IsNotExist(err) && err != nil {
-		fmt.Println(warning.Render("Failed to read package.json, defaulting type to CommonJS"))
+		fmt.Println(utils.Warning.Render("Failed to read package.json, defaulting type to CommonJS"))
 		return cjs
 	}
 	var pkg Package
 	err = json.Unmarshal(bytes, &pkg)
 	if err != nil {
-		fmt.Println(warning.Render("Failed to read package.json, defaulting type to CommonJS"))
+		fmt.Println(utils.Warning.Render("Failed to read package.json, defaulting type to CommonJS"))
 		return cjs
 	}
 	if pkg.Type == "module" {

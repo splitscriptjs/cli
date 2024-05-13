@@ -12,6 +12,8 @@ import (
 
 	"splitscript/config"
 	"splitscript/debounce"
+	"splitscript/run"
+	"splitscript/utils"
 
 	"github.com/evanw/esbuild/pkg/api"
 	"github.com/farmergreg/rfsnotify"
@@ -24,17 +26,19 @@ func watchDir(conf config.Config, dir string) error {
 	if err != nil {
 		return err
 	}
+	run.Run(conf)
 	watcher, err := rfsnotify.NewWatcher()
 	if err != nil {
 		return err
 	}
-	debounce := debounce.New(250 * time.Millisecond)
+	debounceBuild := debounce.New(250 * time.Millisecond)
+	debounceRun := debounce.New(250 * time.Millisecond)
 	go func() {
 		for {
 			select {
 			case event, ok := <-watcher.Events:
 				if !ok || (filepath.Ext(event.Name) != ".ts" && filepath.Ext(event.Name) != ".js") {
-					return
+					break
 				}
 				isTs := filepath.Ext(event.Name) == ".ts"
 				if event.Op == fsnotify.Create {
@@ -46,29 +50,34 @@ func watchDir(conf config.Config, dir string) error {
 					}
 					err := os.WriteFile(event.Name, bp, 0666)
 					if err != nil {
-						fmt.Println(errMessage.Render("Failed to boilerplate " + event.Name))
+						fmt.Println(utils.Error.Render("Failed to boilerplate " + event.Name))
 						fmt.Println(err.Error())
-						return
+						break
 					}
-					debounce(func() { build(conf, event.Name) })
+					debounceBuild(func() { build(conf, event.Name) })
+					debounceRun(func() { run.Run(conf) })
 				} else if event.Op == fsnotify.Write {
-					debounce(func() { build(conf, event.Name) })
+					debounceBuild(func() {
+						build(conf, event.Name)
+					})
+					debounceRun(func() { run.Run(conf) })
 				} else if event.Op == fsnotify.Remove || event.Op == fsnotify.Rename {
-					fileToRemove, err := generateDevFileName(conf, event.Name)
+					fileToRemove, err := utils.GenerateDevFileName(conf, event.Name)
 					if err != nil {
 						fmt.Println(err.Error())
-						return
+						break
 					}
 					err = os.Remove(fileToRemove)
 					if err != nil {
 						fmt.Println(err.Error())
-						return
+						break
 					}
-					fmt.Println(info.Render("Updated"))
+					debounceRun(func() { run.Run(conf) })
+					fmt.Println(utils.Info.Render("Updated"))
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
-					return
+					break
 				}
 				log.Println("error:", err)
 			}
@@ -95,9 +104,9 @@ func watchDir(conf config.Config, dir string) error {
 var ignore = []string{"node_modules", ".git"}
 
 func build(conf config.Config, path string) {
-	outFile, err := generateDevFileName(conf, path)
+	outFile, err := utils.GenerateDevFileName(conf, path)
 	if err != nil {
-		fmt.Println(errMessage.Render("Failed to build " + path))
+		fmt.Println(utils.Error.Render("Failed to build " + path))
 		fmt.Println(err.Error())
 		return
 	}
@@ -110,7 +119,7 @@ func build(conf config.Config, path string) {
 	})
 }
 func buildAll(conf config.Config) error {
-	fmt.Println(info.Render("Rebuilding"))
+	fmt.Println(utils.Info.Render("Rebuilding"))
 
 	clearDevDir(conf)
 	files := walk()
@@ -122,25 +131,13 @@ func buildAll(conf config.Config) error {
 		}
 	}
 	if !includesMain {
-		fmt.Println(errMessage.Render("Main file `" + conf.Main + "` not found"))
+		fmt.Println(utils.Error.Render("Main file `" + conf.Main + "` not found"))
 		os.Exit(1)
 	}
 	for i := range files {
 		build(conf, files[i])
 	}
 	return nil
-}
-
-func generateDevFileName(conf config.Config, path string) (string, error) {
-	rel, err := filepath.Rel("./", path)
-	if err != nil {
-		return "", err
-	}
-	ext := filepath.Ext(rel)
-	if ext == ".ts" {
-		rel = strings.TrimSuffix(rel, ext) + ".js"
-	}
-	return filepath.Join(conf.Dev, rel), nil
 }
 
 var result = []string{}
