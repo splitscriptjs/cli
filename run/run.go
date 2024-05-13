@@ -15,11 +15,12 @@ var previous int = -1
 
 func Run(conf config.Config) {
 	if previous != -1 {
-		err := syscall.Kill(previous, syscall.SIGKILL)
+		p, err := os.FindProcess(previous)
 		if err != nil {
 			fmt.Println(utils.Error.Render(fmt.Sprintf("Failed to kill %d: %s", previous, err.Error())))
 			os.Exit(1)
 		}
+		p.Signal(syscall.SIGTERM)
 		fmt.Printf("Killed %d\n", previous)
 	}
 	fileToRun, err := utils.GenerateDevFileName(conf, conf.Main)
