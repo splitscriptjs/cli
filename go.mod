@@ -1,4 +1,4 @@
-module splitscript
+module github.com/splitscriptjs/cli
 
 go 1.22.2
 
