@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"splitscript/utils"
+
+	"github.com/splitscriptjs/cli/utils"
 )
 
 func tsBoilerplate(packageName, eventName string) string {

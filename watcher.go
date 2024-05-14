@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"splitscript/config"
-	"splitscript/debounce"
-	"splitscript/run"
-	"splitscript/utils"
+	"github.com/splitscriptjs/cli/config"
+	"github.com/splitscriptjs/cli/debounce"
+	"github.com/splitscriptjs/cli/run"
+	"github.com/splitscriptjs/cli/utils"
 
 	"github.com/evanw/esbuild/pkg/api"
 	"github.com/farmergreg/rfsnotify"

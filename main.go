@@ -3,8 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"splitscript/config"
-	"splitscript/utils"
+
+	"github.com/splitscriptjs/cli/config"
+	"github.com/splitscriptjs/cli/utils"
 )
 
 func main() {

@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"syscall"
 
-	"splitscript/config"
-	"splitscript/utils"
+	"github.com/splitscriptjs/cli/config"
+	"github.com/splitscriptjs/cli/utils"
 )
 
 var previous int = -1

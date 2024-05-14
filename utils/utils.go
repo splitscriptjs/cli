@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"splitscript/config"
+	"github.com/splitscriptjs/cli/config"
 )
 
 func GenerateDevFileName(conf config.Config, path string) (string, error) {
