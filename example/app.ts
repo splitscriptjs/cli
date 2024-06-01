@@ -1,7 +1,11 @@
-import discord from '@splitscript.js/discord'
+import discord from "@splitscript.js/discord";
 
-discord.listen('123')
+discord.listen("123");
+let iter = 0;
 setInterval(() => {
-    console.log("avbc")
-}, 1000)
-// throw "abc"
+  console.log("avbc");
+  iter++;
+  if (iter === 10) {
+    throw "abc";
+  }
+}, 1000);

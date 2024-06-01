@@ -1,2 +1,4 @@
-splitscript
 node_modules
+cli
+/example/dev
+/splitscript/splitscript

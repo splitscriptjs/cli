@@ -12,6 +12,7 @@ import (
 )
 
 var previous int = -1
+var closedProcess int = -1
 
 func Run(conf config.Config) {
 	if previous != -1 {
@@ -22,6 +23,7 @@ func Run(conf config.Config) {
 		}
 		p.Signal(syscall.SIGTERM)
 		fmt.Printf("Killed %d\n", previous)
+		closedProcess = previous
 	}
 	fileToRun, err := utils.GenerateDevFileName(conf, conf.Main)
 	fmt.Println(utils.Info.Render("Running `" + conf.Main + "`"))
@@ -44,7 +46,9 @@ func Run(conf config.Config) {
 			fmt.Println(m)
 		}
 		node.Wait()
-		fmt.Println("Finished running, waiting for updates")
+		if closedProcess != node.Process.Pid {
+			fmt.Println("Finished running, waiting for updates")
+		}
 	}()
 	stderr, err := node.StderrPipe()
 	if err != nil {
