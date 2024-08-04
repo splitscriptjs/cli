@@ -18,3 +18,11 @@ func GenerateDevFileName(conf config.Config, path string) (string, error) {
 	}
 	return filepath.Join(conf.Dev, rel), nil
 }
+func Includes[T comparable](slice []T, value T) bool {
+	for _, v := range slice {
+		if v == value {
+			return true
+		}
+	}
+	return false
+}

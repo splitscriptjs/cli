@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"log"
@@ -43,10 +44,22 @@ func watchDir(conf config.Config, dir string) error {
 				isTs := filepath.Ext(event.Name) == ".ts"
 				if event.Op == fsnotify.Create {
 					var bp []byte
+
+					pkg := getEventPackage(event.Name)
+					if pkg == "" {
+						break
+					}
+					eventName := getEventName(event.Name, pkg)
+					typeName := formatToTypeName(eventName)
+					validEvent, pkgName := isValidEvent(pkg, eventName)
+					fmt.Println(validEvent, pkgName)
+					if !validEvent {
+						break
+					}
 					if isTs {
-						bp = []byte(Boilerplate(ts, "@splitscript.js/discord", "MessageCreate"))
+						bp = []byte(Boilerplate(ts, pkgName, typeName))
 					} else {
-						bp = []byte(Boilerplate(t, "@splitscript.js/discord", "MessageCreate"))
+						bp = []byte(Boilerplate(t, pkgName, typeName))
 					}
 					err := os.WriteFile(event.Name, bp, 0666)
 					if err != nil {
@@ -178,4 +191,58 @@ func clearDevDir(conf config.Config) {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+}
+
+func getEventPackage(file string) string {
+	segments := strings.Split(file, string(filepath.Separator))
+	if len(segments) < 2 {
+		return ""
+	}
+	if segments[0] != "functions" {
+		return ""
+	}
+	return segments[1]
+}
+func getEventName(file, eventPackage string) string {
+	rel, err := filepath.Rel(path.Join("functions", eventPackage), file)
+	if err != nil {
+		return ""
+	}
+	segments := filepath.SplitList(path.Dir(rel))
+	return strings.Join(segments, "/")
+}
+func formatToTypeName(eventName string) string {
+	segments := strings.Split(eventName, "/")
+	formatted := make([]string, len(segments))
+	for i := range segments {
+		if len(segments[i]) == 0 {
+			continue
+		}
+		formatted[i] = strings.ToUpper(string(segments[i][0])) + segments[i][1:]
+	}
+	return strings.Join(formatted, "")
+}
+
+type SSJson struct {
+	Packages map[string]Package `json:"packages"`
+}
+type Package struct {
+	ValidEvents []string `json:"validEvents"`
+	PackageName string   `json:"packageName"`
+}
+
+func isValidEvent(eventPackage, eventName string) (bool, string) {
+	ss, err := os.ReadFile("./ss.json")
+	if os.IsNotExist(err) {
+		return false, ""
+	}
+	var ssJson SSJson
+	err = json.Unmarshal(ss, &ssJson)
+	if err != nil {
+		utils.Warning.Render("ss.json is incorrectly formatted")
+	}
+	if ssJson.Packages[eventPackage].PackageName == "" || len(ssJson.Packages[eventPackage].ValidEvents) == 0 {
+		return false, ""
+	}
+	return utils.Includes(ssJson.Packages[eventPackage].ValidEvents, eventName), ssJson.Packages[eventPackage].PackageName
 }

@@ -36,7 +36,7 @@ func Boilerplate(t int, packageName, eventName string) string {
 	return ""
 }
 
-type Package struct {
+type PackageJson struct {
 	Type string `json:"type"`
 }
 
@@ -46,7 +46,7 @@ func GetProjectType() int {
 		fmt.Println(utils.Warning.Render("Failed to read package.json, defaulting type to CommonJS"))
 		return cjs
 	}
-	var pkg Package
+	var pkg PackageJson
 	err = json.Unmarshal(bytes, &pkg)
 	if err != nil {
 		fmt.Println(utils.Warning.Render("Failed to read package.json, defaulting type to CommonJS"))
