@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
@@ -27,10 +28,31 @@ func main() {
 		}
 		watchDir(conf, "./")
 	})
+	cmd.Add("init", "Creates a default splitscript.toml", make(cmd.Args), func(args []string) {
+		_, err := config.Read()
+		if !os.IsNotExist(err) {
+			fmt.Println("splitscript.toml already exists. Do you want to overwrite? (Y/n)")
+			var answer string
+			fmt.Scanf("%s", &answer)
+			if strings.ToLower(answer) != "y" {
+				fmt.Println("Cancelled")
+				return
+			}
+		}
+		data := "typescript = true\nmain = \"app.ts\"\nignore = [ \"node_modules\", \".git\" ]\ndev = \"dev\"\nout = \"build\""
+		file, err := os.Create("splitscript.toml")
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		_, err = file.WriteString(data)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+	})
 	cmd.Add("help", "View this message", make(cmd.Args), func(_ []string) {
 		columns := []table.Column{
 			{Title: "Name", Width: 8},
-			{Title: "Description", Width: 32},
+			{Title: "Description", Width: 48},
 		}
 		rows := cmd.List()
 
